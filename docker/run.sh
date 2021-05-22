@@ -34,6 +34,12 @@ add_peers() {
   done
 }
 
+wait_for_ipfs() {
+  until curl -s "$IPFS_NODE_URL/api/v0/version" > /dev/null; do
+    sleep 2
+  done
+}
+
 case $1 in
   --stop)
     printf "Stopping containers"
@@ -80,17 +86,16 @@ printf "Starting offchain utils in background, hang on!\n\n"
 docker-compose up -d $UTILS
 
 printf "\nConfiguring IPFS node...\n\n"
-until curl -s "$IPFS_NODE_URL/api/v0/version" > /dev/null; do
-  sleep 2
-done
+wait_for_ipfs
 
 docker exec $IPFS_NODE_CONTAINER ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["*"]'
 docker exec $IPFS_NODE_CONTAINER ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["GET", "PUT", "POST"]'
-docker exec $IPFS_NODE_CONTAINER ipfs bootstrap rm --all &> /dev/null
+
+[[ ! -d $CDIR/ipfs-data ]] && docker exec $IPFS_NODE_CONTAINER ipfs bootstrap rm --all &> /dev/null
+[[ -n $IPFS_PEERS ]] && add_peers $IPFS_PEERS
 
 docker restart $IPFS_NODE_CONTAINER > /dev/null
-
-[[ -n $IPFS_PEERS ]] && add_peers $IPFS_PEERS
+wait_for_ipfs
 
 printf "\nContainers are ready.\n"
 
