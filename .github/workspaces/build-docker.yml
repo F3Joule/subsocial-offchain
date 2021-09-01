@@ -8,7 +8,7 @@ on:
 jobs:
   docker:
     env:
-      IMAGE_REPO: dappforce
+      IMAGE_REPO: f3joule
       IMAGE_NAME: subsocial-offchain
 
     runs-on: ubuntu-latest
